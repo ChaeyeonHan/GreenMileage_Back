@@ -4,6 +4,7 @@ var axios = require('axios');
 var querystring = require('querystring');
 var crypto = require('crypto');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 require('dotenv').config();
 const SECRET_KEY = process.env.JWT_SECRET;
 
@@ -109,7 +110,7 @@ const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GOOGLE_USERINFO_URL = 'https://www.googleapis.com/oauth2/v2/userinfo';
 
 
-router.get('/login', (req, res) => {
+router.get('/login/google', (req, res) => {
   let url = 'https://accounts.google.com/o/oauth2/v2/auth';
   url += `?client_id=${GOOGLE_CLIENT_ID}`
   url += `&redirect_uri=${GOOGLE_REDIRECT_URI}`
@@ -144,7 +145,7 @@ router.get('/login/redirect', async (req, res) => {
 
       if (result.length === 0) {
         db.query('INSERT INTO users (username, email, point, logintype) VALUES (?, ?, ?, ?)',
-          [userData.name, , userData.email, 0, "google"], (err, result) => {
+          [userData.name, userData.email, 0, "google"], (err, result) => {
             if (err) throw err;
             console.log(userData.id + " 구글 사용자 가입");
           });
@@ -165,11 +166,10 @@ router.get('/login/redirect', async (req, res) => {
   }
 });
 
-
 router.get('/login/naver', (req, res) => {
   var naverAuthUrl = `https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id=${process.env.NAVER_CLIENT_ID}&redirect_uri=${process.env.NAVER_REDIRECT_URI}&state=STATE_STRING`;
   res.redirect(naverAuthUrl);
-})
+});
 
 router.get('/auth/naver/callback', async (req, res) => {
   try {
@@ -228,6 +228,100 @@ router.get('/auth/naver/callback', async (req, res) => {
     res.status(500).send(error);
   }
 
+});
+
+// 회원가입
+router.post('/signup', async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({
+      message: '이메일과 비밀번호는 필수값입니다.'
+    })
+  }
+
+  try {
+    // 이메일 중복검사
+    const emailCheck = 'SELECT * FROM users WHERE email = ?';
+    db.query(emailCheck, [email], async (err, result) => {
+      if (err) {
+        return res.status(500).json({
+          message: "데이터베이스 조회 중 오류가 발생했습니다."
+        });
+      }
+      if (result.length > 0) {
+        return res.status(400).json({
+          message: "중복된 이메일입니다."
+        });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const insertUserQuery = 'INSERT INTO users (email, password, logintype) VALUES (?, ?, ?)';
+      console.log(email, hashedPassword);
+      db.query(insertUserQuery, [email, hashedPassword, "formlogin"], (err, result) => {
+          if (err) {
+            return res.status(500).json({
+              message: "데이터베이스 저장 중 오류가 발생했습니다."
+            });
+          }
+          return res.status(200).json({
+            message: "회원가입이 완료되었습니다."
+          });
+      });
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "서버 오류가 발생했습니다."
+    });
+  }
+});
+
+router.get('/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({
+      message: '이메일과 비밀번호는 필수값입니다.'
+    })
+  }
+
+  try {
+    const userQuery = 'SELECT * FROM users WHERE email = ?';
+    db.query(userQuery, [email], async (err, users) => {
+      if (err) {
+        return res.status(500).json({ 
+          message: '데이터베이스 조회 중 오류가 발생했습니다.' 
+        });
+      }
+
+      if (users.length === 0) {
+        return res.status(400).json({
+          message: "해당 이메일을 가진 사용자가 없습니다."
+        });
+      }
+      
+      // 비밀번호 일치하는지 확인하고, 토큰 발급
+      const user = users[0]
+      const validPassword = await bcrypt.compare(password, user.password);
+      if (!validPassword) {
+        return res.status(400).json({ message: '비밀번호가 틀렸습니다.' });
+      }
+
+      const token = generateToken(email);
+      return res.status(200).json({
+        message: '로그인 성공',
+        jwt : token
+      });
+    });
+  } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+
 })
+
+
+// 이미지만 받아오는, update하는 api 만들기
 
 module.exports = router;
