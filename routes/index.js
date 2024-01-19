@@ -3,14 +3,28 @@ var router = express.Router();
 var axios = require('axios');
 var querystring = require('querystring');
 var crypto = require('crypto');
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
+const SECRET_KEY = process.env.JWT_SECRET;
 
 var db  = require('../lib/db.js');
 const { token } = require('morgan');
-require('dotenv').config();
+
 
 // oauth 사용자 password 필드에 임의의 값 설정을 위한 무작위 문자열 생성
 function generateSafeString(length) {
   return crypto.randomBytes(length).toString('hex');
+}
+
+function generateToken(userEmail) {
+  const token = jwt.sign(
+  {
+    type: 'JWT',
+    email: userEmail
+  }, SECRET_KEY, {
+    expiresIn: '15m'
+  });
+  return token;
 }
 
 /* GET home page. */
@@ -62,7 +76,7 @@ router.get('/auth/kakao/callback', async (req, res) => {
     const randomPassword = generateSafeString(16);  // 16바이트 길이의 안전한 무작위 문자열
 
     // 받아온 카카오 id로 가입한적이 있는지 확인후, 가입시키기
-    db.query('SELECT * FROM users WHERE id = ?', [userInfo.id], (err, result) => {
+    db.query('SELECT * FROM users WHERE id = ? AND logintype = ?', [userInfo.id, "kakao"], (err, result) => {
       if (err) throw err;
 
       if (result.length === 0) {
@@ -123,9 +137,10 @@ router.get('/auth/naver/callback', async (req, res) => {
     const userEmail = userInfo.response.email;
     const randomPassword = generateSafeString(16);
 
-    db.query('SELECT * FROM users WHERE email = ?', [userEmail], (err, result) => {
+    db.query('SELECT * FROM users WHERE email = ? AND logintype = ?', [userEmail, "naver"], (err, result) => {
       if (err) throw err;
 
+      const token = generateToken(userEmail);
       if (result.length === 0) {
         db.query('INSERT INTO users (username, email, point, password, logintype, image) VALUES (?, ?, ?, ?, ?, ?)',
           [nickname, userEmail, 0, randomPassword, "naver", profileImage], (err, result) => {
@@ -135,12 +150,12 @@ router.get('/auth/naver/callback', async (req, res) => {
         console.log(userInfoResponse.data);
         res.status(200).json({
           message: "네이버 사용자 로그인 완료",
-          data: userInfo.response
+          jwt: token
         });
       } else {
         return res.status(200).json({
           message: "해당 메일로 이미 가입한 사용자입니다.",
-          data: userInfo.response,
+          jwt: token
     });
   }
     })
