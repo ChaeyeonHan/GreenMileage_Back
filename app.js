@@ -3,11 +3,24 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
+const axios = require('axios');
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 
 var app = express();
+// app.js
+const port = 3000; // 원하는 포트 번호로 변경 가능
+app.get('/', (req, res) => {
+  res.send(`
+      <h1>Log in</h1>
+      <a href="/login">Log in</a>
+  `);
+});
+
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
+});
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
