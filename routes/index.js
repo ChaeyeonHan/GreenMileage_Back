@@ -87,6 +87,71 @@ router.get('/auth/kakao/callback', async (req, res) => {
 });
 
 
+//구글 로그인 구현
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_SECRET_KEY;
+const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI;
+const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
+const GOOGLE_USERINFO_URL = 'https://www.googleapis.com/oauth2/v2/userinfo';
+
+
+router.get('/login', (req, res) => {
+  let url = 'https://accounts.google.com/o/oauth2/v2/auth';
+  url += `?client_id=${GOOGLE_CLIENT_ID}`
+  url += `&redirect_uri=${GOOGLE_REDIRECT_URI}`
+  url += '&response_type=code'
+  url += '&scope=openid email profile'    
+  res.redirect(url);
+});
+
+router.get('/login/redirect', async (req, res) => {
+  try {
+    const { code } = req.query;
+    console.log(`code: ${code}`);
+    // access_token, refresh_token 등의 구글 토큰 정보 가져오기
+    const resp = await axios.post(GOOGLE_TOKEN_URL, {
+      // x-www-form-urlencoded(body)
+      code: code,
+      client_id: GOOGLE_CLIENT_ID,
+      client_secret: GOOGLE_CLIENT_SECRET,
+      redirect_uri: GOOGLE_REDIRECT_URI,
+      grant_type: 'authorization_code',
+    });
+    const resp2 = await axios.get(GOOGLE_USERINFO_URL, {
+      // Request Header에 Authorization 추가
+      headers: {
+          Authorization: `Bearer ${resp.data.access_token}`,
+      },
+    });
+    const userData = resp2.data;
+
+    db.query('SELECT * FROM users WHERE id = ?', [userData.id], (err, result) => {
+      if (err) throw err;
+
+      if (result.length === 0) {
+        db.query('INSERT INTO users (username, email, point, logintype) VALUES (?, ?, ?, ?)',
+          [userData.name, , userData.email, 0, "google"], (err, result) => {
+            if (err) throw err;
+            console.log(userData.id + " 구글 사용자 가입");
+          });
+      } else {
+        console.log("기존 사용자");
+      }
+    })
+    
+    console.log(userData);
+    res.status(200).json({
+      message: "구글 사용자 로그인 완료",
+      data: userData,
+    })
+    
+  } catch (error) {
+    console.error(error);
+    res.status(500).send(error);
+  }
+});
+
+
 router.get('/login/naver', (req, res) => {
   var naverAuthUrl = `https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id=${process.env.NAVER_CLIENT_ID}&redirect_uri=${process.env.NAVER_REDIRECT_URI}&state=STATE_STRING`;
   res.redirect(naverAuthUrl);
