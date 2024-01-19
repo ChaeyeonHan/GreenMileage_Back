@@ -140,7 +140,7 @@ router.get('/login/redirect', async (req, res) => {
     });
     const userData = resp2.data;
 
-    db.query('SELECT * FROM users WHERE id = ?', [userData.id], (err, result) => {
+    db.query('SELECT * FROM users WHERE email = ?', [userData.email], (err, result) => {
       if (err) throw err;
 
       if (result.length === 0) {
@@ -150,14 +150,18 @@ router.get('/login/redirect', async (req, res) => {
             console.log(userData.id + " 구글 사용자 가입");
           });
       } else {
-        console.log("기존 사용자");
-      }
+          return res.status(200).json({
+            message: "해당 메일로 이미 가입한 사용자입니다.",
+            jwt: token
+          });
+        }
     })
     
     console.log(userData);
     res.status(200).json({
       message: "구글 사용자 로그인 완료",
       data: userData,
+      jwt: token
     })
     
   } catch (error) {
