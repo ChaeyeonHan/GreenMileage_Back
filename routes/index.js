@@ -148,20 +148,20 @@ router.get('/login/redirect', async (req, res) => {
             if (err) throw err;
             console.log(userData.id + " 구글 사용자 가입");
           });
-      } else {
-          return res.status(200).json({
-            message: "해당 메일로 이미 가입한 사용자입니다.",
+          res.status(200).json({
+            message: "구글 사용자 로그인 완료",
+            data: userData,
             jwt: token
-          });
-        }
+          })
+      } else {
+        return res.status(200).json({
+          message: "해당 메일로 이미 가입한 사용자입니다.",
+          jwt: token
+    });
+      }
     })
     
     console.log(userData);
-    res.status(200).json({
-      message: "구글 사용자 로그인 완료",
-      data: userData,
-      jwt: token
-    })
     
   } catch (error) {
     console.error(error);
