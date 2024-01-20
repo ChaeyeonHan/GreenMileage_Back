@@ -7,10 +7,11 @@ const axios = require('axios');
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
+var campaignRouter = require('./routes/campaign');
 
 var app = express();
 // app.js
-const port = 3001; // 원하는 포트 번호로 변경 가능
+const port = 3000; // 원하는 포트 번호로 변경 가능
 app.get('/', (req, res) => {
   res.send(`
       <h1>Log in</h1>
@@ -34,6 +35,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
+app.use('/campaign', campaignRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
