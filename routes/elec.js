@@ -1,6 +1,7 @@
 const axios = require('axios');
 
 const url = "https://api.odcloud.kr/api/EvInfoServiceV2/v1/getEvSearchList"
+require('dotenv').config();
 const SERVICE_KEY = process.env.ELECTRIC_CAR_KEY
 const addrSetting = '[addr::LIKE]'
 const addrValue = '대전광역시 유성구'

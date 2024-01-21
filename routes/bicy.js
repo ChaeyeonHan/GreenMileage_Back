@@ -1,6 +1,7 @@
 const axios = require('axios');
 
 const url = "http://apis.data.go.kr/6300000/openapi2022/tasuInfo/gettasuInfo"
+require('dotenv').config();
 const SERVICE_KEY = process.env.TASU_KEY
 console.log(SERVICE_KEY)
 
