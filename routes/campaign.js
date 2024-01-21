@@ -1,6 +1,5 @@
 const axios = require("axios");
 const cheerio = require("cheerio");
-
 const url = 'https://www.greenpeace.org/korea/from-the-earth/';
 
 
@@ -24,8 +23,19 @@ axios.get(url)
     });
 
     // 추출한 정보 출력 또는 다른 처리 수행
-    console.log('캠페인 정보:', campaigns);
   })
   .catch(error => {
     console.error('Error fetching data:', error);
   });
+
+var express = require('express');
+var router = express.Router();
+
+
+router.get('/', function(req, res, next) {
+  res.send(`
+    <h1>CAMPAGIN</h1>
+`);
+});
+
+module.exports = router;
