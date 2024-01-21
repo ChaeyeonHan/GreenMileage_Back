@@ -325,7 +325,4 @@ router.get('/login', async (req, res) => {
 
 })
 
-
-// 이미지만 받아오는, update하는 api 만들기
-
 module.exports = router;
