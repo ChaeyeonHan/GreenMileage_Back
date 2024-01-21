@@ -11,7 +11,7 @@ var campaignRouter = require('./routes/campaign');
 
 var app = express();
 // app.js
-const port = 3000; // 원하는 포트 번호로 변경 가능
+const port = 3001; // 원하는 포트 번호로 변경 가능
 app.get('/', (req, res) => {
   res.send(`
       <h1>Log in</h1>

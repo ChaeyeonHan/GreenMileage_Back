@@ -9,6 +9,7 @@ const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const SECRET_KEY = process.env.JWT_SECRET;
 var db  = require('../lib/db.js');
+const { profile } = require('console');
 
 
 /* GET users listing. */
@@ -20,7 +21,7 @@ router.get('/', function(req, res, next) {
 aws.config.update({
   region: 'ap-northeast-2',
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  secretAccessKey: process.env.AWS_ACCESS_KEY_SECRET,
 });
 
 const s3 = new aws.S3();
@@ -29,6 +30,7 @@ const upload = multer({
     s3: s3,
     acl: 'public-read-write',
     bucket: "greenmileage-bucket",
+    ContentType: 'image/jpeg',
     key: (req, file, cb) => {
       cb(null, Date.now().toString() + randomUUID() + file.originalname);
     }
@@ -56,6 +58,7 @@ router.post('/image/upload', upload.single('profileImage'), async (req, res, nex
 
       const fileUrl = req.file.location;
       const userEmail = decoded.email;
+      console.log("이미지 URL: " + req.file.location);
       const sql = 'UPDATE users SET image = ? WHERE email = ? ';
 
       db.query(sql, [fileUrl, userEmail], (error, results) => {
@@ -72,6 +75,7 @@ router.post('/image/upload', upload.single('profileImage'), async (req, res, nex
       });
     });
   } catch (error) {
+    console.log(error)
     res.status(500).json({
       message: "서버 오류 발생"
     });
@@ -149,19 +153,20 @@ router.get('/followers', (req, res) => {
     }
     const userEmail = decoded.email;
     const getUserIdQuery = 'SELECT id FROM users WHERE email = ?';
-    db.query(getUserIdQuery, [userEmail], (err, results) => {
+    db.query(getUserIdQuery, [userEmail], (err, getUserIdresults) => {
       if (err) {
         return res.status(500).json({
           message: "데이터베이스에서 사용자 ID를 가져오는 중 오류 발생"
         });
       }
-      if (results.length === 0) {
+      if (getUserIdresults.length === 0) {
         return res.status(404).json({
           message: "사용자를 찾을 수 없습니다."
         });
       }
-      const user_id = results[0].id;
-      const sql = 'SELECT users.id, users.username, users.email, users.image FROM users JOIN follows on users.id = follows.follower_id WHERE follows.following_id = ?';
+      console.log("사용자 : " + getUserIdresults[0].id);
+      const user_id = getUserIdresults[0].id;
+      const sql = 'SELECT users.id, users.username, users.email, users.image FROM users JOIN follows on users.id = follows.follower_id WHERE follows.follower_id = ?';
       db.query(sql, [user_id], (err, results) => {
         if (err) {
           return res.status(500).json({
