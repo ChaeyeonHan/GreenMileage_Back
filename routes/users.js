@@ -30,7 +30,7 @@ const upload = multer({
     s3: s3,
     acl: 'public-read-write',
     bucket: "greenmileage-bucket",
-    ContentType: 'image/jpeg',
+    contentType: multerS3.AUTO_CONTENT_TYPE,
     key: (req, file, cb) => {
       cb(null, Date.now().toString() + randomUUID() + file.originalname);
     }
