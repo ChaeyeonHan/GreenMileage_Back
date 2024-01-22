@@ -166,7 +166,7 @@ router.get('/notifications/list', function(req, res) {
         });
       }
       const user_id = results[0].id;
-      const getNotificationQuery = 'SELECT * FROM notifications WHERE user_id = ? ORDER By timestamp DESC';
+      const getNotificationQuery = 'SELECT * FROM notifications WHERE user_id = ? AND is_read = 0 ORDER By timestamp DESC';
       db.query(getNotificationQuery, [user_id], (err, notifications) => {
         if (err) {
           return res.status(500).json({
@@ -178,6 +178,22 @@ router.get('/notifications/list', function(req, res) {
         res.json(notifications);
       });
     });
+  });
+});
+
+// 알림 읽음 업데이트
+router.patch('/notifications/:notification_id', (req, res) => {
+  const updateNotificationQuery = 'UPDATE notifications SET is_read = 1 WHERE id = ?';
+  const notification_id = req.params.notification_id;
+
+  db.query(updateNotificationQuery, [notification_id], (error, result) => {
+    if (error) {
+      return res.status(500).json({
+        message: "읽음 처리 실패"
+      });
+    } else {
+      console.log("Notification marked read");
+    }
   });
 });
 
