@@ -2,8 +2,12 @@ const axios = require("axios");
 const cheerio = require("cheerio");
 const url = 'https://www.greenpeace.org/korea/from-the-earth/';
 
+var express = require('express');
+var router = express.Router();
 
-axios.get(url)
+
+router.get('/', function(req, res, next) {
+  axios.get(url)
   .then(response => {
     const $ = cheerio.load(response.data);
 
@@ -21,21 +25,13 @@ axios.get(url)
       };
       campaigns.push(campaign);
     });
+    res.send(campaigns);
 
     // 추출한 정보 출력 또는 다른 처리 수행
   })
   .catch(error => {
     console.error('Error fetching data:', error);
   });
-
-var express = require('express');
-var router = express.Router();
-
-
-router.get('/', function(req, res, next) {
-  res.send(`
-    <h1>CAMPAGIN</h1>
-`);
 });
 
 module.exports = router;
