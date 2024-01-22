@@ -82,7 +82,106 @@ router.post('/image/upload', upload.single('profileImage'), async (req, res, nex
   }
 });
 
-// 팔로우
+let clients = [];
+// sse 연결 설정
+router.get('/notifications', function(req, res) {
+
+  const token = req.headers.authorization.split(' ')[1];
+  jwt.verify(token, SECRET_KEY, (err, decoded) => {
+    if (err) {
+      return res.status(400).json({
+        message: "유효하지 않은 토큰입니다."
+    });
+    }
+
+    const userEmail = decoded.email;
+    
+    // 해당 email로 유저 id
+    const getUserIdQuery = 'SELECT id FROM users WHERE email = ?';
+    db.query(getUserIdQuery, [userEmail], (err, results) => {
+      if (err) {
+        return res.status(500).json({
+          message: "데이터베이스에서 사용자 ID를 가져오는 중 오류 발생"
+        });
+      }
+      if (results.length === 0) {
+        return res.status(404).json({
+          message: "사용자를 찾을 수 없습니다."
+        });
+      }
+      const user_id = results[0].id;
+      
+      // 클라이언트 추가, message 전송
+      const clientId = Date.now();
+      const newClient = {
+        id: clientId,
+        userId: user_id,
+        response: res
+      };
+      clients.push(newClient);
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+    });
+
+    // 연결 종료시 제거
+    req.on('close', () => {
+      console.log(`{clientId} Connection closed`);
+      clients = clients.filter(client => client.id !== clientId);
+    });
+  });
+});
+
+
+
+// 알림 목록 조회
+router.get('/notifications/list', function(req, res) {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({
+      message: "유효하지 않은 토큰입니다."
+    });
+  }
+
+  jwt.verify(token, SECRET_KEY, (err, decoded) => {
+    if (err) {
+      return res.status(400).json({
+        message: "유효하지 않은 토큰입니다."
+      });
+    }
+    const userEmail = decoded.email;
+      
+    // 해당 email로 유저 id
+    const getUserIdQuery = 'SELECT id FROM users WHERE email = ?';
+    db.query(getUserIdQuery, [userEmail], (err, results) => {
+      if (err) {
+        return res.status(500).json({
+          message: "데이터베이스에서 사용자 ID를 가져오는 중 오류 발생"
+        });
+      }
+      if (results.length === 0) {
+        return res.status(404).json({
+          message: "사용자를 찾을 수 없습니다."
+        });
+      }
+      const user_id = results[0].id;
+      const getNotificationQuery = 'SELECT * FROM notifications WHERE user_id = ? ORDER By timestamp DESC';
+      db.query(getNotificationQuery, [user_id], (err, notifications) => {
+        if (err) {
+          return res.status(500).json({
+            message: "데이터베이스에서 알림을 가져오는 중 오류 발생"
+          });
+        }
+        
+        // 알림 목록 반환
+        res.json(notifications);
+      });
+    });
+  });
+});
+
+// 팔로우 및 알림 생성 
 router.post('/follow/:following_id', (req, res) => {
 
   const token = req.headers.authorization.split(' ')[1];
@@ -133,6 +232,11 @@ router.post('/follow/:following_id', (req, res) => {
               message: "데이터베이스에서 팔로우 추가 중 오류 발생"
             });
           }
+
+          // 팔로우 후, 팔로우한 사용자에게 알림 전송
+          notifyUser(following_id, `${userEmail}님이 팔로우를 했습니다.`);
+          console.log("팔로우함");
+
           return res.status(200).json({
             message: "팔로우가 추가되었습니다."
           });
@@ -141,6 +245,24 @@ router.post('/follow/:following_id', (req, res) => {
     });
   });
 });
+
+// 팔로우 추가후 알림 보내기
+const notifyUser = (userId, message) => {
+  // 해당 id를 가진 사용자를 찾고, SSE 메시지를 전송
+  clients.forEach(client => {
+    if (client.userId == userId) {
+      client.response.write(`data: ${message}`);
+    }
+  });
+  
+  const insertNotificationQuery = 'INSERT INTO notifications (user_id, content, timestamp) VALUES (?, ?, NOW());'
+  db.query(insertNotificationQuery, [userId, message], (err, result) => {
+    if (err) {
+      console.err("알림 저장 중 오류 발생", err);
+    }
+  });
+};
+
 
 // 특정 사용자의 팔로우 목록 가져오기
 router.get('/followers', (req, res) => {
