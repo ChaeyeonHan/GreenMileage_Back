@@ -9,12 +9,12 @@ const SERVICE_KEY = process.env.TASU_KEY
 
 router.get('/', function(req, res, next) {
   axios.get(`${url}?serviceKey=${SERVICE_KEY}&pageNo=1&numOfRows=220`)
-.then(response => {
-  res.send(response.data.response.body.items);
-})
-.catch(error => {
-  console.error('에러 발생:', error.message);
-});
+  .then(response => {
+    res.send(response.data.response.body.items);
+  })
+  .catch(error => {
+    console.error('에러 발생:', error.message);
+  });
 });
 
 module.exports = router;
