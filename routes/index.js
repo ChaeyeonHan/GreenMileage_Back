@@ -11,6 +11,8 @@ const SECRET_KEY = process.env.JWT_SECRET;
 var db  = require('../lib/db.js');
 const { token } = require('morgan');
 
+router.use(express.json());
+
 
 // oauth 사용자 password 필드에 임의의 값 설정을 위한 무작위 문자열 생성
 function generateSafeString(length) {
@@ -236,9 +238,9 @@ router.get('/auth/naver/callback', async (req, res) => {
 
 // 회원가입
 router.post('/signup', async (req, res) => {
-  const { email, password } = req.body;
+  const { username, email, password } = req.body;
 
-  if (!email || !password) {
+  if (!username || !email || !password) {
     return res.status(400).json({
       message: '이메일과 비밀번호는 필수값입니다.'
     })
@@ -260,9 +262,9 @@ router.post('/signup', async (req, res) => {
       }
 
       const hashedPassword = await bcrypt.hash(password, 10);
-      const insertUserQuery = 'INSERT INTO users (email, password, logintype) VALUES (?, ?, ?)';
+      const insertUserQuery = 'INSERT INTO users (username, email, point, password, logintype) VALUES (?, ?, 0, ?, ?)';
       console.log(email, hashedPassword);
-      db.query(insertUserQuery, [email, hashedPassword, "formlogin"], (err, result) => {
+      db.query(insertUserQuery, [username, email, hashedPassword, "formlogin"], (err, result) => {
           if (err) {
             return res.status(500).json({
               message: "데이터베이스 저장 중 오류가 발생했습니다."

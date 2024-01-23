@@ -14,7 +14,7 @@ var usersRouter = require('./routes/users');
 var campaignRouter = require('./routes/campaign');
 var bicycleRouter = require('./routes/bicy');
 var electriccarRouter = require('./routes/elec');
-// var chatRouter = require('./routes/chat');
+var infoRouter = require('./routes/getinfo');
 
 var app = express();
 var server = require('http').createServer(app);
@@ -39,12 +39,12 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/', indexRouter)
+app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/campaign/info', campaignRouter);
 app.use('/bicycle/info', bicycleRouter);
 app.use('/electric_car/info', electriccarRouter);
-// app.use('/chat', chatRouter);
+app.use('/get_user_info', infoRouter);
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
