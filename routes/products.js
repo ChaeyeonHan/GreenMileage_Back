@@ -1,12 +1,15 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
+const url = 'https://www.morestore.co.kr/';
 
-async function fetchProducts() {
-    try {
-        const response = await axios.get('https://www.morestore.co.kr/');
-        const html = response.data;
+var express = require('express');
+var router = express.Router();
 
-        const $ = cheerio.load(html);
+router.get('/', function(req, res, next) {
+    axios.get(url)
+    .then(response => {
+    const $ = cheerio.load(response.data);
+
         const products = [];
         // 사진, 제목, 가격
 
@@ -14,19 +17,25 @@ async function fetchProducts() {
             let productName = $(element).find('.name').find('a span').text().trim();
             let productImage = $(element).find('a').children('img').attr('src');
             let productPrice = $(element).find('.name').next('.name').find('a').text().trim();
+            let productLink = 'https://www.morestore.co.kr' + $(element).find('.name').find('a').attr('href');
 
             // 상대경로로 되어있으면 절대경로로 변환
             if (productImage.startsWith('//')) {
                 productImage = 'https:' + productImage;
             }
 
-            products.push({name: productName, imageUrl: productImage, price: productPrice});
+            products.push({name: productName, imageUrl: productImage, price: productPrice, link: productLink});
         });
 
-        console.log(products);
-    } catch (error) {
-        console.log(error);
-    }
-};
+        const limitedProducts = products.slice(0, 10);
 
-fetchProducts();
+        console.log(limitedProducts);
+        res.send(limitedProducts);
+
+    })
+    .catch(error => {
+        console.error('Error fetching data:', error);
+    });
+});
+
+module.exports = router;

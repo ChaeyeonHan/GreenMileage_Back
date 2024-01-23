@@ -25,6 +25,7 @@ router.get('/', function(req, res, next) {
       };
       campaigns.push(campaign);
     });
+    console.log(campaigns);
     res.send(campaigns);
 
     // 추출한 정보 출력 또는 다른 처리 수행
