@@ -11,6 +11,7 @@ var usersRouter = require('./routes/users');
 var campaignRouter = require('./routes/campaign');
 var bicycleRouter = require('./routes/bicy');
 var electriccarRouter = require('./routes/elec');
+var infoRouter = require('./routes/getinfo');
 
 var app = express();
 // app.js
@@ -18,17 +19,21 @@ const port = 3000; // 원하는 포트 번호로 변경 가능
 
 app.use(express.static(path.join(__dirname, '../GreenMileage_Front/dist')));
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:8080',  // 클라이언트의 도메인
+  credentials: true,  // 쿠키를 사용하기 위해 credentials 옵션을 활성화
+}));
 app.use(logger('dev'));
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-
+app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/campaign/info', campaignRouter);
 app.use('/bicycle/info', bicycleRouter);
 app.use('/electric_car/info', electriccarRouter);
+app.use('/get_user_info', infoRouter);
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
