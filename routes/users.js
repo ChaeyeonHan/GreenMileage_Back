@@ -12,7 +12,18 @@ var db  = require('../lib/db.js');
 const { profile } = require('console');
 const chatRoom = require('../models/ChatRoom');
 
-
+const verifyToken = async (req, res) => {
+  try {
+    const token = req.headers.authorization.split(' ')[1];
+    const decoded = await jwt.verify(token, SECRET_KEY);
+    return decoded.email;
+  } catch (error) {
+    res.status(400).json({
+      message: "유효하지 않은 토큰입니다."
+    });
+    throw error;
+  }
+};
 
 /* GET users listing. */
 router.get('/', function(req, res, next) {
@@ -138,49 +149,32 @@ router.get('/notifications', function(req, res) {
 
 
 // 알림 목록 조회
-router.get('/notifications/list', function(req, res) {
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token) {
-    return res.status(401).json({
-      message: "유효하지 않은 토큰입니다."
-    });
-  }
+router.get('/notifications/list', async (req, res) => {
 
-  jwt.verify(token, SECRET_KEY, (err, decoded) => {
-    if (err) {
-      return res.status(400).json({
-        message: "유효하지 않은 토큰입니다."
-      });
-    }
-    const userEmail = decoded.email;
-      
+  try {
+    const userEmail = await verifyToken(req, res);
+    
     // 해당 email로 유저 id
     const getUserIdQuery = 'SELECT id FROM users WHERE email = ?';
-    db.query(getUserIdQuery, [userEmail], (err, results) => {
-      if (err) {
-        return res.status(500).json({
-          message: "데이터베이스에서 사용자 ID를 가져오는 중 오류 발생"
-        });
-      }
-      if (results.length === 0) {
-        return res.status(404).json({
-          message: "사용자를 찾을 수 없습니다."
-        });
-      }
-      const user_id = results[0].id;
-      const getNotificationQuery = 'SELECT * FROM notifications WHERE user_id = ? AND is_read = 0 ORDER By timestamp DESC';
-      db.query(getNotificationQuery, [user_id], (err, notifications) => {
-        if (err) {
-          return res.status(500).json({
-            message: "데이터베이스에서 알림을 가져오는 중 오류 발생"
-          });
-        }
-        
-        // 알림 목록 반환
-        res.json(notifications);
+    const getUserIdResults = await db.query(getUserIdQuery, [userEmail]);
+
+    if (getUserIdResults.length === 0) {
+      return res.status(404).json({
+        message: "사용자를 찾을 수 없습니다."
       });
+    }
+    const user_id = getUserIdResults[0].id;
+    const getNotificationQuery = 'SELECT * FROM notifications WHERE user_id = ? AND is_read = 0 ORDER By timestamp DESC';
+    const notifications = await db.query(getNotificationQuery, [user_id]);
+    // 알림 목록 반환
+    res.json(notifications);
+  } catch (error) {
+    // 오류 처리
+    console.error(error);
+    res.status(500).json({
+      message: "알림을 가져오는 중 오류 발생"
     });
-  });
+  }
 });
 
 // 알림 읽음 업데이트
@@ -200,68 +194,52 @@ router.patch('/notifications/:notification_id', (req, res) => {
 });
 
 // 팔로우 및 알림 생성 
-router.post('/follow/:following_id', (req, res) => {
+router.post('/follow/:following_id', async (req, res) => {
 
-  const token = req.headers.authorization.split(' ')[1];
-  jwt.verify(token, SECRET_KEY, (err, decoded) => {
-    if (err) {
-        return res.status(400).json({
-          message: "유효하지 않은 토큰입니다."
-        });
-    }
-    const userEmail = decoded.email;
-    
+  try {
+    const userEmail = await verifyToken(req, res);
+
     // 해당 email로 유저 id
     const getUserIdQuery = 'SELECT id FROM users WHERE email = ?';
-    db.query(getUserIdQuery, [userEmail], (err, results) => {
-      if (err) {
-        return res.status(500).json({
-          message: "데이터베이스에서 사용자 ID를 가져오는 중 오류 발생"
-        });
-      }
-      if (results.length === 0) {
-        return res.status(404).json({
-          message: "사용자를 찾을 수 없습니다."
-        });
-      }
-      
-      const follower_id = results[0].id;
-      const following_id = req.params.following_id;
+    const results = await db.query(getUserIdQuery, [userEmail]);
 
-      // 이미 팔로우 되어있는지 확인
-      const checkFollowQuery = 'SELECT * FROM follows WHERE follower_id = ? AND following_id = ?';
-      db.query(checkFollowQuery, [follower_id, following_id], (checkFollowErr, checkFollowResults) => {
-        if (checkFollowErr) {
-          return res.status(500).json({
-            message: "데이터베이스에서 팔로우 상태 확인 중 오류 발생"
-          });
-        }
-        if (checkFollowResults.length > 0) {
-          return res.status(200).json({
-            message: "이미 팔로우 되어 있습니다."
-          });
-        }
-
-        // 팔로우 추가
-        const insertFollowQuery = 'INSERT INTO follows (follower_id, following_id) VALUES (?, ?)';
-        db.query(insertFollowQuery, [follower_id, following_id], (err, results) => {
-          if (err) {
-            return res.status(500).json({
-              message: "데이터베이스에서 팔로우 추가 중 오류 발생"
-            });
-          }
-
-          // 팔로우 후, 팔로우한 사용자에게 알림 전송
-          notifyUser(following_id, `${userEmail}님이 팔로우를 했습니다.`);
-          console.log("팔로우함");
-
-          return res.status(200).json({
-            message: "팔로우가 추가되었습니다."
-          });
-        });
+    if (results.length === 0) {
+      return res.status(404).json({
+        message: "사용자를 찾을 수 없습니다."
       });
+    }
+      
+    const follower_id = results[0].id;
+    const following_id = req.params.following_id;
+
+    // 이미 팔로우 되어있는지 확인
+    const checkFollowQuery = 'SELECT * FROM follows WHERE follower_id = ? AND following_id = ?';
+    const checkFollowResults = await db.query(checkFollowQuery, [follower_id, following_id]);
+  
+    if (checkFollowResults.length > 0) {
+      return res.status(200).json({
+        message: "이미 팔로우 되어 있습니다."
+      });
+    }
+
+    // 팔로우 추가
+    const insertFollowQuery = 'INSERT INTO follows (follower_id, following_id) VALUES (?, ?)';
+    await db.query(insertFollowQuery, [follower_id, following_id]);
+
+    // 팔로우 후, 팔로우한 사용자에게 알림 전송
+    notifyUser(following_id, `${userEmail}님이 팔로우를 했습니다.`);
+    console.log("팔로우함");
+
+    return res.status(200).json({
+      message: "팔로우가 추가되었습니다."
     });
-  });
+  } catch (error) {
+    // 오류 처리
+    console.error(error);
+    res.status(500).json({
+      message: "팔로우 및 알림 생성 중 오류 발생"
+    });
+  }
 });
 
 // 팔로우 추가후 알림 보내기
@@ -283,79 +261,66 @@ const notifyUser = (userId, message) => {
 
 
 // 특정 사용자의 팔로우 목록 가져오기
-router.get('/followers', (req, res) => {
-  const token = req.headers.authorization.split(' ')[1];
-  jwt.verify(token, SECRET_KEY, (err, decoded) => {
-    if (err) {
-        return res.status(400).json({
-          message: "유효하지 않은 토큰입니다."
-        });
-    }
-    const userEmail = decoded.email;
+router.get('/followers', async (req, res) => {
+
+  try{
+    const userEmail = await verifyToken(req, res);
+
     const getUserIdQuery = 'SELECT id FROM users WHERE email = ?';
-    db.query(getUserIdQuery, [userEmail], (err, getUserIdresults) => {
-      if (err) {
-        return res.status(500).json({
-          message: "데이터베이스에서 사용자 ID를 가져오는 중 오류 발생"
-        });
-      }
-      if (getUserIdresults.length === 0) {
-        return res.status(404).json({
-          message: "사용자를 찾을 수 없습니다."
-        });
-      }
-      console.log("사용자 : " + getUserIdresults[0].id);
-      const user_id = getUserIdresults[0].id;
-      const sql = 'SELECT users.id, users.username, users.email, users.image FROM users JOIN follows on users.id = follows.follower_id WHERE follows.follower_id = ?';
-      db.query(sql, [user_id], (err, results) => {
-        if (err) {
-          return res.status(500).json({
-            message: "데이터베이스에서 팔로워 목록을 가져오는 중 오류 발생"
-          });
-        }
-        return res.status(200).json({
-          message: "팔로워 목록 조회 성공",
-          results: results
-        });
+    const getUserIdResults = await db.query(getUserIdQuery, [userEmail]);
+    
+    if (getUserIdResults.length === 0) {
+      return res.status(404).json({
+        message: "사용자를 찾을 수 없습니다."
       });
+    }
+    console.log("사용자 : " + getUserIdResults[0].id);
+    const user_id = getUserIdResults[0].id;
+    const sql = 'SELECT users.id, users.username, users.email, users.image FROM users JOIN follows on users.id = follows.follower_id WHERE follows.follower_id = ?';
+    const results = await db.query(sql, [user_id]);
+
+    return res.status(200).json({
+      message: "팔로워 목록 조회 성공",
+      results: results
     });
-  });
+  } catch (error) {
+    // 오류 처리
+    console.error(error);
+    res.status(500).json({
+      message: "팔로워 목록을 가져오는 중 오류 발생"
+    })
+  }
 });
 
 // 팔로우 취소
-router.delete('/unfollow/:following_id', (req, res) => {
-  const token = req.headers.authorization.split(' ')[1];
-  jwt.verify(token, SECRET_KEY, (err, decoded) => {
-    if (err) {
-        return res.status(400).json({
-          message: "유효하지 않은 토큰입니다."
-        });
-    }
-    const userEmail = decoded.email;
-    const getUserIdQuery = 'SELECT id FROM users WHERE email = ?';
-    db.query(getUserIdQuery, [userEmail], (err, results) => {
-      if (err) {
-        return res.status(500).json({
-          message: "데이터베이스에서 사용자 ID를 가져오는 중 오류 발생"
-        });
-      }
-      if (results.length === 0) {
-        return res.status(404).json({
-          message: "사용자를 찾을 수 없습니다."
-        });
-      }
-      const follower_id = results[0].id;
-      const following_id = req.params.following_id;
+router.delete('/unfollow/:following_id', async (req, res) => {
 
-      const sql = 'DELETE FROM follows WHERE follower_id = ? AND following_id = ?';
-      db.query(sql, [follower_id, following_id], (err, results) => {
-        if (err) throw err;
-        return res.status(200).json({
-          message: "팔로우가 취소되었습니다."
-        });
+  try {
+    const userEmail = await verifyToken(req, res);
+
+    const getUserIdQuery = 'SELECT id FROM users WHERE email = ?';
+    const getUserIdResults = await db.query(getUserIdQuery, [userEmail]);
+
+    if (getUserIdResults.length === 0) {
+      return res.status(404).json({
+        message: "사용자를 찾을 수 없습니다."
       });
+    }
+    const follower_id = results[0].id;
+    const following_id = req.params.following_id;
+
+    const sql = 'DELETE FROM follows WHERE follower_id = ? AND following_id = ?';
+    await db.query(sql, [follower_id, following_id]);
+    return res.status(200).json({
+      message: "팔로우가 취소되었습니다."
     });
-  });
+  } catch (error) {
+    // 오류 처리
+    console.error(error);
+    res.status(500).json({
+      message: "팔로우 취소 중 오류 발생"
+    });
+  }
 });
 
 
@@ -379,5 +344,28 @@ router.delete('/unfollow/:following_id', (req, res) => {
 //     });
 //   }
 // });
+
+// 캠페인 참여시 포인트 적립
+router.patch('/campaign', async (req, res) => {
+  try {
+    const userEmail = await verifyToken(req, res);
+    const addPoints = req.body.addPoints;
+
+    // 유저 찾아서 유저의 포인트 캠페인 포인트만큼 업데이트
+    const updatePointQuery = 'UPDATE users SET point = point + ? WHERE email = ?';
+    await db.query(updatePointQuery, [addPoints, userEmail]);
+    console.log(addPoints);
+    
+    return res.status(200).json({
+        message: "포인트가 적립되었습니다."
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "포인트 적립 중 오류 발생"
+    });
+  }
+})
 
 module.exports = router;
