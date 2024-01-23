@@ -23,9 +23,9 @@ var io = require('socket.io')(server);
 const SECRET_KEY = process.env.JWT_SECRET;
 
 // app.js
-const port = 3001; // 원하는 포트 번호로 변경 가능
+const port = 3000; // 원하는 포트 번호로 변경 가능
 const corsOptions = {
-    origin: '*',
+    origin: 'http://localhost:8080',
     methods: ['GET', 'POST'],
     credentials: true,
     optionsSuccessStatus: 204
