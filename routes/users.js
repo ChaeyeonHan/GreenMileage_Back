@@ -10,6 +10,8 @@ require('dotenv').config();
 const SECRET_KEY = process.env.JWT_SECRET;
 var db  = require('../lib/db.js');
 const { profile } = require('console');
+const chatRoom = require('../models/ChatRoom');
+
 
 
 /* GET users listing. */
@@ -355,5 +357,27 @@ router.delete('/unfollow/:following_id', (req, res) => {
     });
   });
 });
+
+
+// 내가 참여하고 있는 채팅방 정보 불러오기(스키마 별도 생성 필요)
+// router.get('/chats', async (req, res) => {
+//   const token = req.headers.authorization.split(' ')[1];
+//   try {
+//     const decoded = await jwt.verify(token, SECRET_KEY);
+//     const userEmail = decoded.email;
+
+//     const chatRooms = await chatRoom.find({senderId: userEmail}).select('chatRoomName -_id');
+
+//     res.status(200).json({
+//       message: "채팅방 조회 성공",
+//       data: chatRooms
+//     });
+//   } catch (error) {
+//     console.log(error);
+//     res.status(500).json({
+//       error: error.message
+//     });
+//   }
+// });
 
 module.exports = router;
