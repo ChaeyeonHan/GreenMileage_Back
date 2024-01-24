@@ -109,7 +109,6 @@ router.get('/campaigns', function(req, res, next) {
     db.query('select campaign_title from campaign where user_email=?', [email], (err, result) => {
         if(err) throw err;
         const userInfo = result[0];
-        console.log(userInfo);
         res.send(userInfo);
     })
 });
