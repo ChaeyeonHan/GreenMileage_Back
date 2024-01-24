@@ -35,4 +35,8 @@ router.get('/', function(req, res, next) {
   });
 });
 
+// router.get('/list', function (req, res) => {
+
+// })
+
 module.exports = router;
