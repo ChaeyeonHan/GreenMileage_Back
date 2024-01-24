@@ -345,8 +345,8 @@ router.delete('/unfollow/:following_id', async (req, res) => {
 //   }
 // });
 
-// 캠페인 참여시 포인트 적립
-router.patch('/campaign', async (req, res) => {
+// 제품 구매시 포인트 적립
+router.patch('/points', async (req, res) => {
   try {
     const userEmail = await verifyToken(req, res);
     const addPoints = req.body.addPoints;
@@ -370,5 +370,36 @@ router.patch('/campaign', async (req, res) => {
     });
   }
 })
+
+// 캠페인 참여 + 포인트 업데이트
+router.post('/campaign', async (req, res) => {
+  try {
+    const userEmail = await verifyToken(req, res);
+
+    const campaign_title = req.body.campaign_title;
+    const addPoints = req.body.addPoints;
+
+    // 인원수 +1
+    const updateParticipantsQuery = 'UPDATE campaign SET participants = participants + 1 WHERE title = ?';
+    await db.query(updateParticipantsQuery, [campaign_title]);
+
+    // 내 캠페인에 추가
+    const insertCampaignQuery = 'INSERT INTO my_campaign (title, user_email) VALUES (?, ?)';
+    await db.query(insertCampaignQuery, [campaign_title, userEmail]);
+
+    const updatePointQuery = 'UPDATE users SET point = point + ? WHERE email = ?';
+    await db.query(updatePointQuery, [addPoints, userEmail]);
+
+    res.status(200).json({
+      message: "캠페인 참여 & 포인트 적립에 성공했습니다."
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "캠페인 참여 중 오류 발생"
+    });
+  }
+})
+
 
 module.exports = router;
