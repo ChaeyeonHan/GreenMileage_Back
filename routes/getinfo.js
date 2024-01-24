@@ -21,7 +21,6 @@ router.get('/', function(req, res, next) {
 });
 
 router.get('/follows', function(req, res, next) {
-    console.log('connected');
     const token = req.headers.authorization.split(' ')[1];
     const decodedToken = jwt.verify(token, SECRET_KEY);
     const email = decodedToken.email;
@@ -97,7 +96,6 @@ router.get('/follows', function(req, res, next) {
             });
         });
         Promise.all([getFollowers, getFollowing]).then(() => {
-            console.log(followInfo);
             res.send(followInfo);
         });
     })
