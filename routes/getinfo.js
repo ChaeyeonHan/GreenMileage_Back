@@ -114,4 +114,36 @@ router.get('/campaigns', function(req, res, next) {
     })
 });
 
+router.get('/my-campaigns', function(req, res, next) {
+    const token = req.headers.authorization.split(' ')[1];
+    const decodedToken = jwt.verify(token, SECRET_KEY);
+    const email = decodedToken.email;
+    db.query('select title from my_campaign where user_email=?', [email], async (err, result) => {
+        const title = result.map(result => result.title);
+        const campaignInfo = title.map(async (title) => {
+            return new Promise((resolve, reject) => {
+                db.query('select title, image, link, participants from campaign where title = ?', [title], (err, userRows) => {
+                    if (err) {
+                        console.error('Error fetching user details:', err);
+                        reject(err);
+                        return;
+                    }
+        
+                    // userRows에서 필요한 정보 추출
+                    const campaignDetails = {
+                        title: userRows[0].title,
+                        image: userRows[0].image,
+                        link: userRows[0].link,
+                        participants: userRows[0].participants
+                    };
+
+                    resolve(campaignDetails);
+                });
+            });
+        });
+        const campaignArray = await Promise.all(campaignInfo);
+        res.send(campaignArray);
+    })
+});
+
 module.exports = router;
