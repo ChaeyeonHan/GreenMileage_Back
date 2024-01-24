@@ -350,11 +350,14 @@ router.patch('/points', async (req, res) => {
   try {
     const userEmail = await verifyToken(req, res);
     const addPoints = req.body.addPoints;
+    const title = req.body.title;
 
     // 유저 찾아서 유저의 포인트 캠페인 포인트만큼 업데이트
     const updatePointQuery = 'UPDATE users SET point = point + ? WHERE email = ?';
     await db.query(updatePointQuery, [addPoints, userEmail]);
     console.log(addPoints);
+
+    db.query('insert into campaign (campaign_title, user_email) values (?, ?)', [title, userEmail]);
     
     return res.status(200).json({
         message: "포인트가 적립되었습니다."

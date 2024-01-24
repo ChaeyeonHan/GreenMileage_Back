@@ -101,4 +101,17 @@ router.get('/follows', function(req, res, next) {
     })
 });
 
+router.get('/campaigns', function(req, res, next) {
+    const token = req.headers.authorization.split(' ')[1];
+    const decodedToken = jwt.verify(token, SECRET_KEY);
+    const email = decodedToken.email;
+    console.log(email);
+    db.query('select campaign_title from campaign where user_email=?', [email], (err, result) => {
+        if(err) throw err;
+        const userInfo = result[0];
+        console.log(userInfo);
+        res.send(userInfo);
+    })
+});
+
 module.exports = router;
