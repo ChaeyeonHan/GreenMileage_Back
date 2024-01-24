@@ -346,7 +346,7 @@ router.delete('/unfollow/:following_id', async (req, res) => {
 // });
 
 // 캠페인 참여시 포인트 적립
-router.patch('/campaign', async (req, res) => {
+router.patch('/points', async (req, res) => {
   try {
     const userEmail = await verifyToken(req, res);
     const addPoints = req.body.addPoints;
@@ -364,6 +364,25 @@ router.patch('/campaign', async (req, res) => {
     console.error(error);
     res.status(500).json({
       message: "포인트 적립 중 오류 발생"
+    });
+  }
+})
+
+// 캠페인 참여
+router.post('/campaign', async (req, res) => {
+  try {
+    const userEmail = await verifyToken(req, res);
+    const campaign_id = req.body.campaign_id;
+
+    const insertCampaignQuery = 'INSERT INTO my_campaign (campaign_id, user_email) VALUES (?, ?)';
+    await db.query(insertCampaignQuery, [campaign_id, userEmail]);
+    res.status(200).json({
+      message: "캠페인 참여에 성공했습니다."
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "캠페인 참여 중 오류 발생"
     });
   }
 })
