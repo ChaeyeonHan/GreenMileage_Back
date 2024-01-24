@@ -77,7 +77,7 @@ io.on('connection', function (socket){
         chatRoomName: chatRoomName,
         senderId: 'system', // 시스템 메시지를 나타내는 senderId
         message: `${data.userEmail}님이 입장하셨습니다.`,
-        profile_image: data.image // 시스템 프로필 이미지 경로
+        profile_image: data.image, // 시스템 프로필 이미지 경로
       };
       io.to(chatRoomName).emit('newMessage', joinMessage);
     });

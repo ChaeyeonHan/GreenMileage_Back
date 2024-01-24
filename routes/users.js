@@ -379,9 +379,9 @@ router.post('/campaign', async (req, res) => {
     const campaign_title = req.body.campaign_title;
     const addPoints = req.body.addPoints;
 
-    // 인원수 +1
-    const updateParticipantsQuery = 'UPDATE campaign SET participants = participants + 1 WHERE title = ?';
-    await db.query(updateParticipantsQuery, [campaign_title]);
+//    // 인원수 +1
+//    const updateParticipantsQuery = 'UPDATE campaign SET participants = participants + 1 WHERE title = ?';
+//    await db.query(updateParticipantsQuery, [campaign_title]);
 
     // 내 캠페인에 추가
     const insertCampaignQuery = 'INSERT INTO my_campaign (title, user_email) VALUES (?, ?)';
@@ -389,6 +389,18 @@ router.post('/campaign', async (req, res) => {
 
     const updatePointQuery = 'UPDATE users SET point = point + ? WHERE email = ?';
     await db.query(updatePointQuery, [addPoints, userEmail]);
+
+    db.query('select * from campaign where title=?', [campaign_title], (err, result) => {
+      if(result.length == 0){
+          const campaign_image = req.body.campaign_image;
+          const campaign_link = req.body.campaign_link;
+          db.query('insert into campaign (title, image, link, participants) values (?, ?, ?, ?)', [campaign_title, campaign_image, campaign_link, 1]);
+      } else {
+        const updateParticipantsQuery = 'UPDATE campaign SET participants = participants + 1 WHERE title = ?';
+        db.query(updateParticipantsQuery, [campaign_title]);
+      }
+    })
+
 
     res.status(200).json({
       message: "캠페인 참여 & 포인트 적립에 성공했습니다."
