@@ -27,7 +27,7 @@ const SECRET_KEY = process.env.JWT_SECRET;
 const port = 3000; // 원하는 포트 번호로 변경 가능
 const corsOptions = {
     origin: 'http://localhost:8080',
-    methods: ['GET', 'POST'],
+    methods: ['GET', 'POST', 'PATCH'],
     credentials: true,
     optionsSuccessStatus: 204
 };
