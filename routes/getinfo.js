@@ -109,7 +109,6 @@ router.get('/campaigns', function(req, res, next) {
     db.query('select campaign_title from campaign where user_email=?', [email], (err, result) => {
         if(err) throw err;
         const userInfo = result[0];
-        console.log(userInfo);
         res.send(userInfo);
     })
 });
@@ -143,6 +142,18 @@ router.get('/my-campaigns', function(req, res, next) {
         });
         const campaignArray = await Promise.all(campaignInfo);
         res.send(campaignArray);
+    })
+});
+
+router.post('/campaign-participants', function(req, res, next) {
+    const email = req.body.email;
+    db.query('select email, username, image from users where email=?', [email], (err, result) => {
+        const userInfo = {
+            email: result[0].email,
+            username: result[0].username,
+            image: result[0].image
+        };
+        res.send(userInfo);
     })
 });
 

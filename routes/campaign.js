@@ -4,6 +4,7 @@ const url = 'https://www.greenpeace.org/korea/from-the-earth/';
 
 var express = require('express');
 var router = express.Router();
+var db  = require('../lib/db.js');
 
 
 router.get('/', function(req, res, next) {
@@ -25,7 +26,6 @@ router.get('/', function(req, res, next) {
       };
       campaigns.push(campaign);
     });
-    console.log(campaigns);
     res.send(campaigns);
 
     // 추출한 정보 출력 또는 다른 처리 수행
@@ -35,8 +35,11 @@ router.get('/', function(req, res, next) {
   });
 });
 
-// router.get('/list', function (req, res) => {
-
-// })
+router.post('/participants', function(req, res, next) {
+  const title = req.body.title;
+  db.query('select user_email from my_campaign where title=?', [title], (err, result) => {
+      res.send(result);
+  })
+});
 
 module.exports = router;
