@@ -19,7 +19,13 @@ var infoRouter = require('./routes/getinfo');
 
 var app = express();
 var server = require('http').createServer(app);
-var io = require('socket.io')(server);
+var io = require('socket.io')(server, {
+  cors: {
+    origin: 'http://localhost:8080',
+    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+    credentials: true    
+  }
+});
 
 const SECRET_KEY = process.env.JWT_SECRET;
 
@@ -56,12 +62,6 @@ app.set('view engine', 'jade');
 app.use(function(req, res, next) {
   next(createError(404));
 });
-
-
-// 채팅방 식별자
-function createChatRoomId(userId1, userId2) {
-    return [userId1, userId2].sort().join('_');
-}
 
 io.on('connection', function (socket){
     console.log('새로운 사용자가 연결되었습니다.');
@@ -125,9 +125,9 @@ app.use(function(err, req, res, next) {
   res.render('error');
 });
 
-// app.get('/*', function (req, res) {
-//   res.sendFile(path.join((__dirname, '../GreenMileage_Front/dist', 'index.html')));
-// });
+app.get('/*', function (req, res) {
+  res.sendFile(path.join((__dirname, '../GreenMileage_Front/dist', 'index.html')));
+});
 
 server.listen(port, () => {
   console.log(`Server is running on port ${port}`);
