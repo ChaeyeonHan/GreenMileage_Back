@@ -29,7 +29,6 @@ router.get('/', function(req, res, next) {
 
         const limitedProducts = products.slice(0, 10);
 
-        console.log(limitedProducts);
         res.send(limitedProducts);
 
     })
