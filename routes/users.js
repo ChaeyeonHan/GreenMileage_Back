@@ -193,6 +193,28 @@ router.patch('/notifications/:notification_id', (req, res) => {
   });
 });
 
+// 그냥 팔로우만
+router.post('/follow', function(req, res) {
+  const token = req.headers.authorization.split(' ')[1];
+  const following_email = req.body.following_email;
+  const decodedToken = jwt.verify(token, SECRET_KEY);
+  const email = decodedToken.email;
+
+  db.query('SELECT * FROM users WHERE email = ?', [email], (err, result) => {
+    const userId = result[0].id;
+
+    db.query('SELECT * FROM users WHERE email = ?', [following_email], (err, result) => {
+      const followingId = result[0].id;
+
+      db.query('INSERT INTO follows (follower_id, following_id) VALUES (?,?)', [userId, followingId], (err, result) => {
+        return res.status(200).json({
+          message: "팔로우가 추가되었습니다."
+        })
+      })
+    })
+  })
+});
+
 // 팔로우 및 알림 생성 
 router.post('/follow/:following_id', async (req, res) => {
 
